@@ -5,7 +5,7 @@ from pyread_eagle import EagleSnapshot
 from geometricFunctions import rotateAboutVector
 
 # Attribute values
-gasAttrs = ["GroupNumber", "SubGroupNumber", "Coordinates", "Velocity", "Mass", "StarFormationRate"]
+gasAttrs = ["GroupNumber", "SubGroupNumber", "Coordinates", "Velocity", "Mass", "StarFormationRate", "Temperature"]
 starAttrs = ["GroupNumber", "SubGroupNumber", "Coordinates", "Velocity", "Mass"]
 
 Nreject = 50
@@ -45,6 +45,8 @@ class galaxy:
             self.gvz = self.gasDataBox["Velocity"][0:self.gasArrayLength, 2]
             self.gm  = self.gasDataBox["Mass"]
             self.sfr = self.gasDataBox["StarFormationRate"]
+            self.temp = self.gasDataBox["Temperature"]
+            #self.abundances = self.gasDataBox["ElementAbundance"]
 
             # Loading in the star particle data if wanted
             if stars:
@@ -230,6 +232,13 @@ class galaxy:
         cvy = self.gvy[self.inCylinder]
         cvz = self.gvz[self.inCylinder]
 
+        # Getting the masses, sfr and temperatures of points within the cylinder
+        masses = self.gm[self.inCylinder]
+        sfrs = self.sfr[self.inCylinder]
+        temps = self.temp[self.inCylinder]
+
+        # Getting the abundances
+
         # Taking away the galaxy veloicty from the gas particles
         cvx = cvx/(1000*100) - self.veloicty[0]
         cvy = cvy/(1000*100) - self.veloicty[1]
@@ -242,13 +251,19 @@ class galaxy:
             vlos = "Null"
             weightedMean = "Null"
             cylinderParticles = 0
+            masses = "Null"
             
         else:
             # Finding the line of sight velocities
             vels = np.stack([cvx, cvy, cvz], axis=1)
             vlos = np.dot(vels, vectorNorm)
 
+            # Converting masses
+            masses = masses / (1000 * 1.99e30) # grams to Msun
+            sfrs = 365*24*60*60 * sfrs / (1000 * 1.99e30) # grams to Msun per year
+
             # Weighted mean velocity
             weightedMean = np.sum(self.gm[self.inCylinder] * vlos) / np.sum(self.gm[self.inCylinder])
 
-        return vlos, weightedMean, cylinderParticles
+
+        return vlos, weightedMean, cylinderParticles, masses, sfrs, temps

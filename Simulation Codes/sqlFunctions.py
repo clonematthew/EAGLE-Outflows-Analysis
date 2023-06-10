@@ -19,14 +19,19 @@ def getGalaxyData(simulation):
                     SH.Velocity_y as vy, \
                     SH.Velocity_z as vz, \
                     AP.SFR as sfr, \
-                    SH.GalaxyID as id \
+                    SH.GalaxyID as id, \
+                    SH.HalfMassRad_Gas as rg, \
+                    SH.HalfMassRad_Star as rs, \
+                    SIZES.R_halfmass100 as rp \
                 FROM \
                     %s_SubHalo as SH, \
-                    %s_Aperture as AP \
+                    %s_Aperture as AP, \
+                    %s_Sizes as SIZES \
                 WHERE \
-                    SH.SnapNum = 28 \
+                    SH.SnapNum = 27 \
                     and SH.GalaxyID = AP.GalaxyID \
-                    and AP.ApertureSize = 30 " % (simulation, simulation)
+                    and SH.GalaxyID = SIZES.GalaxyID \
+                    and AP.ApertureSize = 30 " % (simulation, simulation, simulation)
 
     # Executing the query
     myData = sql.execute_query(con, myQuery)

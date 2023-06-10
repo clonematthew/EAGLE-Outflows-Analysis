@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import csv
 import os.path
+from tqdm import tqdm
 
 # Imports of my libraries
 from sqlFunctions import *
@@ -10,12 +11,17 @@ from galaxyClass import galaxy
 from geometricFunctions import getCylinders
 
 # Setting the path to the datafiles
-filepath = "/home/universe/spxtd1-shared/RefL0100N1504/snapshot_028_z000p000/snap_028_z000p000.0.hdf5"
-#filepath = "./data/snap_028_z000p000.0.hdf5"
+#prePath = "C:/Users/Work Account/OneDrive/Documents/University [MPhys]/Year 4/PX4310 - Physics Project/Code/"
+#filepath = "/home/universe/spxtd1-shared/RefL0100N1504/snapshot_027_z010p000/snap_027_z010p000.0.hdf5"
+#filepath = prePath+"/data/snap_028_z000p000.0.hdf5"
+#filepath = "/home/universe/spxtd1-shared/NoAGNL0050N0752/snapshot_028_z000p000/snap_028_z000p000.0.hdf5"
+filepath = "/home/universe/spxtd1-shared/NoAGNL0050N0752/snapshot_027_z000p101/snap_027_z000p101.0.hdf5"
 
 # Defining the simulation we want
-sim = "REFL0100N1504"
+
+#sim = "REFL0100N1504"
 #sim = "REFL0012N0188"
+sim = "NoAGNL0050N0752"
 simFile = sim + "galaxyData.txt"
 
 # Checking if that file exists
@@ -27,7 +33,7 @@ else:
 print("Galaxy Data Loaded")
 
 # Importing the galaxy data
-dataFrame = pd.read_csv(simFile, names=["x", "y", "z", "gn", "sgn", "mass", "vx", "vy", "vz", "sfr", "id"])
+dataFrame = pd.read_csv(simFile, names=["x", "y", "z", "gn", "sgn", "mass", "vx", "vy", "vz", "sfr", "id", "rg", "rs", "r"])
 dataFrame["id"] = dataFrame["id"].astype("int")
 
 print("DataFrame Imported")
@@ -42,8 +48,12 @@ sample = dataFrame[dataFrame["mass"] > 3e9]
 nGals = len(sample["mass"])
 
 # Opening csv writer and numpy writer
-f = open("galaxyData.csv", "w")
+f = open("galaxyData2.csv", "w")
 writer = csv.writer(f)
+fv = open("velocities.txt", "a")
+fm = open("masses.txt", "a")
+fs = open("sfrs.txt", "a")
+ft = open("temperatures.txt", "a")
 
 print("Galaxy Output File Initialised")
 
@@ -53,10 +63,9 @@ writer.writerow(headerRow)
 
 # Initialising i and v data
 i = 0
-vData = np.array([])
 
 # Main loop
-while i< nGals:
+for i in tqdm(range(nGals)):
     # Choosing the galaxy
     d = sample.iloc[i]
 
@@ -76,7 +85,7 @@ while i< nGals:
 
         for j in range(len(vectors)):
             # Initialising the cylinder
-            v, w, p = gal.cylinder(vectors[j], cylSize)
+            v, w, p, m, s, t = gal.cylinder(vectors[j], cylSize)
 
             # Outputting the data
             rowList = [gid, mass, sfr, "True"]
@@ -88,12 +97,31 @@ while i< nGals:
             # Checking for particles being present
             if p == 0:
                 # Writing null spectrum data
-                vData = np.append(vData, "Null:")
+                fv.write("Null: \n")
+                fm.write("Null: \n")
+                fs.write("Null: \n")
+                ft.write("Null: \n")
+
             else:
-                # Writting spectrum data
+                # Writing spectrum data
                 vstr = v.tolist()
-                values = str(vstr) + ":"
-                vData = np.append(vData, values)
+                values = str(vstr) + ":\n"
+                fv.write(values)
+
+                # Writing mass data
+                mstr = m.tolist()
+                values = str(mstr) + ":\n"
+                fm.write(values)
+
+                # Writing SFR data
+                sstr = s.tolist()
+                values = str(sstr) + ":\n"
+                fs.write(values)
+
+                # Writing temp data
+                tstr = t.tolist()
+                values = str(tstr) + ":\n"
+                ft.write(values)
 
     else:
         # Priting a null array if no particles
@@ -101,15 +129,19 @@ while i< nGals:
         writer.writerow(rowList)
 
         # Writing spectrum data
-        vData = np.append(vData, "Null:")
+        fv.write("Null: \n")
+        fm.write("Null: \n")
+        fs.write("Null: \n")
+        ft.write("Null: \n")
 
     # Updating i
     i = i + 1
 
-    if i % 50 == 0:
-        print("Galaxy %s loaded"% i)
+# Closing the files
+fv.close()
+fm.close()
+fs.close()
+ft.close()
+f.close()
 
-# Saving the spectra data
-np.savetxt("spectra.txt", vData, fmt="%s")
-    
 print("Done")
